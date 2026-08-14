@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Keymon.OverlayWindow"
+        Title="Keymon Overlay"
+        Width="150" Height="150"
+        CanResize="False"
+        SystemDecorations="None"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False">
+
+	<!--
+	  화면 위에 떠 있는 픽셀 고양이 창입니다.
+	  WPF의 WindowStyle="None" + AllowsTransparency="True" 조합이
+	  Avalonia에서는 SystemDecorations="None" + TransparencyLevelHint="Transparent"에 해당합니다.
+	-->
+	<Grid Background="Transparent">
+		<Image Name="AnimImage" Width="140" Height="140" Stretch="Uniform" Margin="5">
+			<!-- 가장자리를 부드럽게 지워 스프라이트의 네모난 경계선을 감춥니다. -->
+			<Image.OpacityMask>
+				<RadialGradientBrush>
+					<GradientStop Color="Black" Offset="0.5"/>
+					<GradientStop Color="Transparent" Offset="1.0"/>
+				</RadialGradientBrush>
+			</Image.OpacityMask>
+		</Image>
+	</Grid>
+
+</Window>

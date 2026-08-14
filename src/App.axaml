@@ -1,0 +1,12 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Keymon.App"
+             RequestedThemeVariant="Light">
+	<!--
+	  원본 keymon의 대시보드는 흰 카드 + 연한 회색 배경을 전제로 색을 골랐습니다.
+	  macOS 다크 모드에서 글자가 배경에 묻히지 않도록 라이트 테마로 고정합니다.
+	-->
+	<Application.Styles>
+		<FluentTheme />
+	</Application.Styles>
+</Application>

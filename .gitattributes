@@ -1,0 +1,14 @@
+# 저장소 안에서는 항상 LF로 보관하고, 체크아웃할 때만 OS에 맞춰 변환합니다.
+* text=auto
+
+# 셸 스크립트는 macOS/Linux에서 실행되므로 작업 폴더에서도 반드시 LF여야 합니다.
+# (CRLF로 체크아웃되면 "bad interpreter: /usr/bin/env bash^M" 오류가 납니다.)
+*.sh text eol=lf
+
+# Windows 도구가 읽는 파일은 CRLF가 자연스럽습니다.
+*.sln text eol=crlf
+*.csproj text eol=crlf
+
+# 스프라이트는 이진 파일이라 줄바꿈 변환 대상이 아닙니다.
+*.png binary
+*.ico binary

@@ -1,0 +1,310 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Keymon.DashboardWindow"
+        Title="집중력 가이드 대시보드"
+        Width="720" Height="900"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen"
+        Background="#F8FAFC">
+
+	<!--
+	  WPF의 <Style x:Key="..."> + <Trigger>는 Avalonia에 없습니다.
+	  대신 CSS와 비슷한 '선택자(Selector)' 문법을 씁니다.
+	    Border.card          → Classes="card"가 붙은 Border
+	    ToggleButton:checked → 체크된 상태의 ToggleButton
+	    /template/ Border#track → 컨트롤 템플릿 안의 이름이 track인 Border
+	-->
+	<Window.Styles>
+		<Style Selector="Border.card">
+			<Setter Property="Background" Value="White"/>
+			<Setter Property="CornerRadius" Value="12"/>
+			<Setter Property="Padding" Value="20"/>
+			<Setter Property="Margin" Value="0,0,0,15"/>
+			<Setter Property="BorderBrush" Value="#E2E8F0"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="BoxShadow" Value="0 2 10 0 #40E2E8F0"/>
+		</Style>
+
+		<!-- 빠른 모드(60초 → 10초) 토글 스위치 -->
+		<Style Selector="ToggleButton.switch">
+			<Setter Property="Width" Value="44"/>
+			<Setter Property="Height" Value="24"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Template">
+				<ControlTemplate>
+					<Border Name="track" CornerRadius="12" Background="#D1D5DB">
+						<Ellipse Name="knob" Width="20" Height="20" Fill="White"
+						         HorizontalAlignment="Left" Margin="2,0,0,0"/>
+					</Border>
+				</ControlTemplate>
+			</Setter>
+		</Style>
+		<Style Selector="ToggleButton.switch:checked /template/ Border#track">
+			<Setter Property="Background" Value="#8B5CF6"/>
+		</Style>
+		<Style Selector="ToggleButton.switch:checked /template/ Ellipse#knob">
+			<Setter Property="HorizontalAlignment" Value="Right"/>
+			<Setter Property="Margin" Value="0,0,2,0"/>
+		</Style>
+
+		<!-- 모니터링 일시 정지 ON/OFF 버튼 -->
+		<Style Selector="ToggleButton.pill">
+			<Setter Property="Width" Value="60"/>
+			<Setter Property="Height" Value="26"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="FontWeight" Value="Bold"/>
+			<Setter Property="Content" Value="OFF"/>
+			<Setter Property="Background" Value="#38BDF8"/>
+			<Setter Property="Template">
+				<ControlTemplate>
+					<Border Background="{TemplateBinding Background}" CornerRadius="13">
+						<ContentPresenter Content="{TemplateBinding Content}"
+						                  Foreground="{TemplateBinding Foreground}"
+						                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+					</Border>
+				</ControlTemplate>
+			</Setter>
+		</Style>
+		<Style Selector="ToggleButton.pill:checked">
+			<Setter Property="Content" Value="ON"/>
+			<Setter Property="Background" Value="#EF4444"/>
+		</Style>
+
+		<Style Selector="TabItem">
+			<Setter Property="FontSize" Value="15"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="Padding" Value="20,10"/>
+			<Setter Property="Margin" Value="0,0,5,15"/>
+			<Setter Property="MinHeight" Value="0"/>
+			<Setter Property="Foreground" Value="#64748B"/>
+		</Style>
+		<Style Selector="TabItem:selected">
+			<Setter Property="Foreground" Value="#3B82F6"/>
+		</Style>
+	</Window.Styles>
+
+	<Grid Margin="20" RowDefinitions="Auto,*">
+
+		<!-- ── 상단 헤더 ────────────────────────────────────────── -->
+		<ToggleButton x:Name="BtnFastMode" Classes="switch"
+		              HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,10,0"/>
+
+		<StackPanel Grid.Row="0" Margin="0,0,0,15" HorizontalAlignment="Center">
+			<TextBlock x:Name="TxtStatus" Text="나의 집중 패턴 모니터링" FontSize="22" FontWeight="Black"
+			           Foreground="#1E293B" HorizontalAlignment="Center" TextAlignment="Center"/>
+
+			<!-- macOS에서 입력 모니터링 권한이 없을 때만 보이는 경고 배너 -->
+			<Border x:Name="PermissionBanner" IsVisible="False"
+			        Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1"
+			        CornerRadius="8" Padding="14,10" Margin="0,12,0,0" MaxWidth="560">
+				<StackPanel>
+					<TextBlock Text="⚠️ 입력 모니터링 권한이 필요합니다" FontWeight="Bold" FontSize="13" Foreground="#B91C1C"/>
+					<TextBlock Text="시스템 설정 → 개인정보 보호 및 보안 → 입력 모니터링에서 KEYMON을 켠 뒤 앱을 다시 실행해 주세요. 권한이 없으면 타수가 계속 0으로 표시됩니다."
+					           FontSize="12" Foreground="#DC2626" TextWrapping="Wrap" Margin="0,4,0,0"/>
+					<Button x:Name="BtnOpenPermission" Content="권한 설정 열기" Margin="0,8,0,0"
+					        Padding="10,4" FontSize="12" Cursor="Hand"/>
+				</StackPanel>
+			</Border>
+
+			<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+				<TextBlock Text="⏱️ 다음 상태 갱신:" FontSize="13" Foreground="#64748B" Margin="0,0,8,0" VerticalAlignment="Center"/>
+				<Border CornerRadius="3" Background="#E2E8F0" ClipToBounds="True" Height="6" Width="150" VerticalAlignment="Center">
+					<ProgressBar x:Name="BarUpdate" Value="60" Maximum="60" MinHeight="6" Height="6"
+					             Foreground="#3B82F6" Background="Transparent" BorderThickness="0"/>
+				</Border>
+				<TextBlock x:Name="TxtUpdateSec" Text="60초" FontSize="13" FontWeight="Bold" Foreground="#3B82F6"
+				           Margin="8,0,0,0" Width="34" VerticalAlignment="Center"/>
+			</StackPanel>
+
+			<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,0">
+				<TextBlock Text="모니터링 일시 정지" VerticalAlignment="Center" Margin="0,0,10,0"
+				           Foreground="#64748B" FontWeight="SemiBold"/>
+				<ToggleButton x:Name="BtnManualStandby" Classes="pill"/>
+			</StackPanel>
+		</StackPanel>
+
+		<TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="0">
+
+			<!-- ── 탭 1: 실시간 모니터링 ─────────────────────────── -->
+			<TabItem Header="⏱️ 실시간 모니터링">
+				<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,10,0">
+					<StackPanel>
+						<Border Background="White" CornerRadius="20" Margin="0,0,0,15" Padding="20"
+						        BoxShadow="0 0 30 0 #66E2E8F0">
+							<StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+								<TextBlock x:Name="TxtCharacter" Text="⏳" FontSize="80"
+								           HorizontalAlignment="Center" RenderTransformOrigin="50%,50%" Margin="0,0,0,15"/>
+								<TextBlock x:Name="TxtStateTitle" Text="패턴 분석 준비" FontSize="32" FontWeight="Black"
+								           Foreground="#475569" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+								<TextBlock x:Name="TxtCharState" Text="데이터를 불러오고 있습니다..." FontSize="16"
+								           Foreground="#64748B" HorizontalAlignment="Center" Margin="0,10,0,0"
+								           TextWrapping="Wrap" TextAlignment="Center"/>
+								<Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8"
+								        Padding="15" Margin="0,15,0,0" Width="500">
+									<StackPanel>
+										<TextBlock Text="💡 데이터 기반 상태 진단" FontWeight="Bold" FontSize="13"
+										           Foreground="#475569" Margin="0,0,0,8"/>
+										<TextBlock x:Name="TxtReason" Text="데이터를 수집하여 판단 근거를 분석하고 있습니다..."
+										           FontSize="13" Foreground="#64748B" TextWrapping="Wrap" LineHeight="18"/>
+									</StackPanel>
+								</Border>
+							</StackPanel>
+						</Border>
+
+						<Border Background="White" CornerRadius="10" Padding="15,25,15,25">
+							<UniformGrid Columns="4" Rows="2">
+								<StackPanel HorizontalAlignment="Center" Margin="0,0,0,25">
+									<TextBlock Text="🔥 타수 (KPM)" Foreground="#94A3B8" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+									<TextBlock x:Name="TxtKpm" Text="0" FontSize="26" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+								</StackPanel>
+								<StackPanel HorizontalAlignment="Center" Margin="0,0,0,25">
+									<TextBlock Text="🖱️ 클릭 (MPM)" Foreground="#94A3B8" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+									<TextBlock x:Name="TxtMpm" Text="0" FontSize="26" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+								</StackPanel>
+								<StackPanel HorizontalAlignment="Center" Margin="0,0,0,25">
+									<TextBlock Text="⚡ 총 행동 (APM)" Foreground="#94A3B8" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center"/>
+									<TextBlock x:Name="TxtApm" Text="0" FontSize="26" FontWeight="Black" Foreground="#8B5CF6" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+								</StackPanel>
+								<StackPanel HorizontalAlignment="Center" Margin="0,0,0,25">
+									<TextBlock Text="🎯 최종 집중도" Foreground="#94A3B8" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center"/>
+									<TextBlock x:Name="TxtFocus" Text="0%" FontSize="26" FontWeight="Black" Foreground="#3B82F6" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+								</StackPanel>
+								<StackPanel HorizontalAlignment="Center">
+									<TextBlock Text="🔙 오타율" Foreground="#94A3B8" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+									<TextBlock x:Name="TxtEr" Text="0 회" FontSize="22" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+								</StackPanel>
+								<StackPanel HorizontalAlignment="Center">
+									<TextBlock Text="🔀 창 전환" Foreground="#94A3B8" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+									<TextBlock x:Name="TxtCsr" Text="0 번" FontSize="22" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+								</StackPanel>
+								<StackPanel HorizontalAlignment="Center">
+									<TextBlock Text="💢 거친 꺾임" Foreground="#94A3B8" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+									<TextBlock x:Name="TxtJerk" Text="0 회" FontSize="22" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+								</StackPanel>
+								<StackPanel HorizontalAlignment="Center">
+									<TextBlock Text="😴 누적 피로도" Foreground="#94A3B8" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+									<TextBlock x:Name="TxtFatigue" Text="0 점" FontSize="22" FontWeight="Bold" Foreground="#10B981" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+								</StackPanel>
+							</UniformGrid>
+						</Border>
+					</StackPanel>
+				</ScrollViewer>
+			</TabItem>
+
+			<!-- ── 탭 2: 통계 및 분석 ────────────────────────────── -->
+			<TabItem Header="📊 통계 및 분석">
+				<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,10,0">
+					<StackPanel>
+						<Border Classes="card" Margin="0,5,0,15">
+							<StackPanel>
+								<TextBlock Text="📅 날짜 선택" FontWeight="Bold" FontSize="14" Foreground="#64748B" Margin="0,0,0,15"/>
+								<StackPanel x:Name="DatePanel" Orientation="Horizontal" HorizontalAlignment="Center"/>
+							</StackPanel>
+						</Border>
+
+						<Border Classes="card">
+							<StackPanel>
+								<TextBlock x:Name="TxtDailyReportTitle" Text="📋 0월 0일 리포트" FontWeight="Bold" FontSize="14" Foreground="#64748B" Margin="0,0,0,10"/>
+								<TextBlock x:Name="TxtSummarySentence" Text="데이터를 불러오는 중입니다..." FontWeight="Black" FontSize="20"
+								           Foreground="#1E293B" Margin="0,0,0,20" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+
+								<Grid ColumnDefinitions="*,*,*,*">
+									<Border Grid.Column="0" Background="#F0F9FF" CornerRadius="8" Padding="12" Margin="0,0,5,0">
+										<StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+											<TextBlock Text="◎" FontSize="20" Foreground="#3B82F6" Margin="0,0,8,0" VerticalAlignment="Center"/>
+											<StackPanel VerticalAlignment="Center">
+												<TextBlock Text="평균 집중도" FontSize="11" Foreground="#64748B"/>
+												<TextBlock x:Name="TxtDailyAvgFocus" Text="-" FontSize="18" FontWeight="Bold" Foreground="#3B82F6"/>
+											</StackPanel>
+										</StackPanel>
+									</Border>
+									<Border Grid.Column="1" Background="#FFFBEB" CornerRadius="8" Padding="12" Margin="3,0,3,0">
+										<StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+											<TextBlock Text="📈" FontSize="20" Foreground="#F59E0B" Margin="0,0,8,0" VerticalAlignment="Center"/>
+											<StackPanel VerticalAlignment="Center">
+												<TextBlock Text="평균 피로도" FontSize="11" Foreground="#64748B"/>
+												<TextBlock x:Name="TxtDailyAvgFatigue" Text="-" FontSize="18" FontWeight="Bold" Foreground="#F59E0B"/>
+											</StackPanel>
+										</StackPanel>
+									</Border>
+									<Border Grid.Column="2" Background="#ECFDF5" CornerRadius="8" Padding="12" Margin="3,0,3,0">
+										<StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+											<TextBlock Text="🕒" FontSize="20" Foreground="#10B981" Margin="0,0,8,0" VerticalAlignment="Center"/>
+											<StackPanel VerticalAlignment="Center">
+												<TextBlock Text="총 집중 시간" FontSize="11" Foreground="#64748B"/>
+												<TextBlock x:Name="TxtDailyWorkTime" Text="-" FontSize="16" FontWeight="Bold" Foreground="#10B981"/>
+											</StackPanel>
+										</StackPanel>
+									</Border>
+									<Border Grid.Column="3" Background="#F1F5F9" CornerRadius="8" Padding="12" Margin="5,0,0,0">
+										<StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+											<TextBlock Text="☕" FontSize="20" Foreground="#64748B" Margin="0,0,8,0" VerticalAlignment="Center"/>
+											<StackPanel VerticalAlignment="Center">
+												<TextBlock Text="대기 시간" FontSize="11" Foreground="#64748B"/>
+												<TextBlock x:Name="TxtDailyIdleTime" Text="-" FontSize="16" FontWeight="Bold" Foreground="#64748B"/>
+											</StackPanel>
+										</StackPanel>
+									</Border>
+								</Grid>
+							</StackPanel>
+						</Border>
+
+						<Border Classes="card">
+							<StackPanel>
+								<Grid Margin="0,0,0,15">
+									<TextBlock Text="📈 선택한 날짜의 시간대별 흐름" FontWeight="Bold" FontSize="14" Foreground="#64748B"/>
+									<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+										<Ellipse Width="10" Height="10" Fill="#3B82F6" Margin="0,0,5,0" VerticalAlignment="Center"/>
+										<TextBlock Text="집중도" FontSize="12" Foreground="#64748B" Margin="0,0,15,0"/>
+										<Ellipse Width="10" Height="10" Fill="#F59E0B" Margin="0,0,5,0" VerticalAlignment="Center"/>
+										<TextBlock Text="피로도" FontSize="12" Foreground="#64748B"/>
+									</StackPanel>
+								</Grid>
+
+								<!-- 격자선·데이터점·값 라벨을 코드에서 모두 그립니다(DrawDailyLineChart 참고). -->
+								<Canvas x:Name="DailyChartCanvas" Width="600" Height="170" HorizontalAlignment="Center"/>
+							</StackPanel>
+						</Border>
+
+						<Grid Margin="0,0,0,10" ColumnDefinitions="1.1*,15,1*">
+							<Border Grid.Column="0" Classes="card" Margin="0">
+								<StackPanel x:Name="StateDistributionPanel"/>
+							</Border>
+
+							<Border Grid.Column="2" Classes="card" Margin="0">
+								<StackPanel>
+									<TextBlock Text="💡 그날의 힌트" FontWeight="Bold" FontSize="14" Foreground="#64748B" Margin="0,0,0,15"/>
+
+									<Border Background="#F0FDF4" CornerRadius="8" Padding="12" Margin="0,0,0,10" BorderBrush="#DCFCE7" BorderThickness="1">
+										<Grid ColumnDefinitions="Auto,*">
+											<TextBlock Grid.Column="0" Text="📈" FontSize="20" VerticalAlignment="Top" Margin="0,0,10,0"/>
+											<StackPanel Grid.Column="1">
+												<TextBlock x:Name="TxtDailyHint1Title" Text="데이터 분석 중" FontWeight="Bold" FontSize="13" Foreground="#166534" Margin="0,0,0,4"/>
+												<TextBlock x:Name="TxtDailyHint1Desc" Text="충분한 데이터가 누적되면 맞춤형 힌트가 제공됩니다." FontSize="12" Foreground="#15803D" TextWrapping="Wrap"/>
+											</StackPanel>
+										</Grid>
+									</Border>
+
+									<Border Background="#FFF7ED" CornerRadius="8" Padding="12" BorderBrush="#FFEDD5" BorderThickness="1">
+										<Grid ColumnDefinitions="Auto,*">
+											<TextBlock Grid.Column="0" Text="📉" FontSize="20" VerticalAlignment="Top" Margin="0,0,10,0"/>
+											<StackPanel Grid.Column="1">
+												<TextBlock x:Name="TxtDailyHint2Title" Text="데이터 분석 중" FontWeight="Bold" FontSize="13" Foreground="#C2410C" Margin="0,0,0,4"/>
+												<TextBlock x:Name="TxtDailyHint2Desc" Text="작업 세션이 종료되면 인지적 피로 흐름을 분석합니다." FontSize="12" Foreground="#B45309" TextWrapping="Wrap"/>
+											</StackPanel>
+										</Grid>
+									</Border>
+								</StackPanel>
+							</Border>
+						</Grid>
+					</StackPanel>
+				</ScrollViewer>
+			</TabItem>
+		</TabControl>
+	</Grid>
+</Window>

@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<AssemblyName>Keymon</AssemblyName>
+		<RootNamespace>Keymon</RootNamespace>
+		<InvariantGlobalization>false</InvariantGlobalization>
+		<ApplicationIcon></ApplicationIcon>
+		<!-- Avalonia는 WPF와 달리 XAML을 .axaml 확장자로 씁니다. -->
+		<AvaloniaNameGeneratorIsEnabled>true</AvaloniaNameGeneratorIsEnabled>
+		<!-- 맥에서 dotnet publish -r win-x64 를 할 수 있도록 -->
+		<EnableWindowsTargeting>true</EnableWindowsTargeting>
+	</PropertyGroup>
+
+	<!--
+    폴더 구조 (원본 keymon의 4계층 구조를 그대로 유지합니다):
+      input/     - Layer 1: 입력 캡처 (InputHookManager, MetricCollector)
+      analysis/  - Layer 2: 데이터 분석 (AnalysisEngine, MetricSnapshot, DailyStat)
+      services/  - Layer 3: 세션 조율 (MonitoringService, PersistenceService, ISessionData)
+      ui/        - Layer 4: 프레젠테이션 (DashboardWindow, MainWindow, TrayIconManager)
+      platform/  - Layer 0: OS 추상화 ★신규 (Windows / macOS 네이티브 API 격리)
+  -->
+
+	<ItemGroup>
+		<PackageReference Include="Avalonia" Version="11.3.19" />
+		<PackageReference Include="Avalonia.Desktop" Version="11.3.19" />
+		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.19" />
+		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.19" />
+		<!-- 전역 키보드/마우스 후킹. libuiohook 네이티브 바이너리가 win/osx/linux 모두 포함됩니다. -->
+		<PackageReference Include="SharpHook" Version="7.1.3" />
+		<!-- 아래 패키지는 Windows 전용 기능(절전/화면 잠금 알림)에만 쓰이며
+		     macOS에서는 호출되지 않습니다. 패키지 자체는 모든 플랫폼에서 복원됩니다. -->
+		<PackageReference Include="Microsoft.Win32.SystemEvents" Version="10.0.10" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- 픽셀 고양이 스프라이트를 어셈블리에 내장합니다.
+		     파일 경로 대신 avares:// URI로 읽기 때문에 macOS .app 번들 안에서도 동작합니다. -->
+		<AvaloniaResource Include="Assets\**\*.png" />
+	</ItemGroup>
+
+</Project>
