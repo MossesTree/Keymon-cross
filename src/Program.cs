@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Text.RegularExpressions;
 using Avalonia;
 
 namespace Keymon
@@ -13,9 +15,36 @@ namespace Keymon
             .StartWithClassicDesktopLifetime(args);
 
         // Avalonia 디자이너와 테스트가 찾아 쓰는 규약 이름이라 이름을 바꾸면 안 됩니다.
-        public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App>()
-            .UsePlatformDetect()   // Windows→Win32, macOS→AppKit 백엔드를 자동 선택
-            .WithInterFont()
-            .LogToTrace();
+        public static AppBuilder BuildAvaloniaApp()
+        {
+            var builder = AppBuilder.Configure<App>()
+                .UsePlatformDetect()   // Windows→Win32, macOS→AppKit 백엔드를 자동 선택
+                .WithInterFont()
+                .LogToTrace();
+
+            // Avalonia.Native는 시작 시 NSApplication의 activationPolicy를 직접
+            // 설정하므로, Info.plist의 LSUIElement 값은 macOS Dock 표시 여부에
+            // 아무 영향이 없습니다. build-mac.sh가 이미 써둔 LSUIElement 값을
+            // 그대로 읽어 ShowInDock에 반영해, 빌드 플래그 하나로 계속 제어되게 합니다.
+            if (OperatingSystem.IsMacOS())
+                builder = builder.With(new MacOSPlatformOptions { ShowInDock = !IsMenuBarOnly() });
+
+            return builder;
+        }
+
+        private static bool IsMenuBarOnly()
+        {
+            try
+            {
+                string plistPath = Path.Combine(AppContext.BaseDirectory, "..", "Info.plist");
+                string text = File.ReadAllText(plistPath);
+                var match = Regex.Match(text, @"<key>LSUIElement</key>\s*<(true|false)\s*/>");
+                return match.Success && match.Groups[1].Value == "true";
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }

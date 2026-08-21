@@ -52,26 +52,45 @@ dotnet run --project src/Keymon.Cross.csproj
 > ⚠️ `dotnet run`은 실행할 때마다 macOS가 다른 앱으로 인식해서 권한이 유지되지 않습니다.
 > 계속 쓸 거라면 아래 `.app` 번들로 만드세요.
 
-### macOS — 제대로 설치해서 쓸 때
+### macOS — 제대로 설치해서 쓸 때 (권장)
+
+**1) 빌드**
 
 ```bash
 cd keymon-cross
 chmod +x build-mac.sh
-./build-mac.sh
+./build-mac.sh --menubar-only
 ```
 
-`dist/KEYMON.app`이 만들어집니다. 응용 프로그램 폴더로 옮긴 뒤:
+`dist/KEYMON.app`이 만들어집니다. `--menubar-only`를 주면 Dock에 아이콘이 뜨지 않고
+메뉴바에만 상주합니다 (배경 작업 앱으로 쓰기 좋습니다). 옵션 없이 빌드하면 Dock 아이콘도 함께 표시됩니다.
 
-1. `KEYMON.app` 실행 → 권한 요청 팝업에서 **허용**
+**2) 설치**
+
+빌드 결과물을 응용 프로그램 폴더로 옮기면 Launchpad·Spotlight(`⌘Space`)에서 바로 찾아 실행할 수 있습니다.
+
+```bash
+cp -R dist/KEYMON.app /Applications/
+```
+
+(Finder에서 `dist` 폴더를 열어 `KEYMON.app`을 `Applications` 폴더로 직접 끌어다 놔도 됩니다.)
+
+**3) 최초 실행 & 권한 허용**
+
+1. `/Applications/KEYMON.app` 실행 (Launchpad·Spotlight·더블클릭 아무 방법이나) → 권한 요청 팝업에서 **허용**
 2. **시스템 설정 → 개인정보 보호 및 보안 → 입력 모니터링**에서 KEYMON 켜기
-3. 메뉴바 아이콘 → **종료** 후 다시 실행 (권한은 재시작해야 적용됩니다)
+   - 목록에 안 보이면 좌측 하단 `+`로 `/Applications/KEYMON.app`을 직접 추가하세요.
+   - 같은 화면의 **손쉬운 사용(접근성)** 항목에도 KEYMON이 보이면 함께 켜 주세요. (입력 후킹 라이브러리가 두 권한을 함께 확인합니다.)
+3. 메뉴바 아이콘 → **종료** 후 다시 실행 (권한은 앱을 재시작해야 적용됩니다)
+
+이후로는 메뉴바 아이콘 클릭 → **로그인 시 자동 실행**을 켜 두면 맥을 켤 때마다 자동으로 실행됩니다.
 
 빌드 옵션:
 
 | 옵션 | 설명 |
 |---|---|
 | `--arch osx-x64` | 인텔 맥용으로 빌드 (기본값은 현재 맥에 맞춰 자동 감지) |
-| `--menubar-only` | Dock 아이콘 없이 메뉴바에만 존재 (`LSUIElement`) |
+| `--menubar-only` | Dock 아이콘 없이 메뉴바에만 존재 (`LSUIElement` + `MacOSPlatformOptions.ShowInDock`) |
 | `--framework-dependent` | .NET 런타임을 별도 설치하는 대신 용량을 줄임 |
 
 ---
@@ -118,6 +137,7 @@ chmod +x build-mac.sh
 | 화면 잠금 | `SystemEvents.SessionSwitch` | Windows: 동일 / macOS: `CGSessionCopyCurrentDictionary` 폴링 |
 | 자동 실행 | 레지스트리 `Run` 키 | Windows: 동일 / macOS: `~/Library/LaunchAgents` LaunchAgent |
 | 입력 권한 | 불필요 | macOS: `IOHIDCheckAccess`로 확인 후 안내 배너 표시 |
+| Dock 아이콘 표시 | 불필요 (Windows는 개념 없음) | macOS: `Program.cs`에서 `MacOSPlatformOptions.ShowInDock`을 `Info.plist`의 `LSUIElement`와 동기화 |
 | 스프라이트 로딩 | `"..\..\..\Assets\..."` 파일 경로 | 어셈블리 내장 리소스(`avares://`) |
 | 데이터 저장 위치 | 실행 파일 옆 | OS 표준 사용자 데이터 폴더 |
 
@@ -160,8 +180,17 @@ keymon-cross/
 
 **타수(KPM)가 계속 0입니다 (macOS)**
 → 입력 모니터링 권한이 없는 상태입니다. 대시보드 상단에 빨간 배너가 뜹니다.
-   시스템 설정에서 KEYMON을 켜고 **앱을 완전히 종료했다가 다시 실행**하세요.
+   시스템 설정 → 개인정보 보호 및 보안에서 **입력 모니터링**과 **손쉬운 사용(접근성)** 둘 다
+   KEYMON이 켜져 있는지 확인하고, **앱을 완전히 종료했다가 다시 실행**하세요.
    `dotnet run`으로 띄웠다면 권한이 유지되지 않으니 `./build-mac.sh`로 만든 `.app`을 쓰세요.
+   빌드를 다시 했다면(코드 서명이 바뀌므로) 권한 목록에서 KEYMON을 껐다 켜서 재등록해 보세요.
+
+**Dock에 아이콘이 계속 보입니다 (macOS, `--menubar-only`로 빌드했는데도)**
+→ Avalonia의 macOS 백엔드는 시작할 때 `Info.plist`의 `LSUIElement`와 별개로
+   `NSApplication`의 activation policy를 직접 설정합니다. 그래서 `src/Program.cs`에서
+   `AppBuilder.With(new MacOSPlatformOptions { ShowInDock = ... })`로 같은 값을 다시 넘겨줘야
+   실제로 반영됩니다 (이미 반영되어 있습니다). `--menubar-only`로 새로 빌드한 뒤 기존 앱을
+   완전히 종료(`killall Keymon` 등)하고 다시 실행해 보세요.
 
 **스크롤이 잘 안 세집니다 (macOS)**
 → 휠 감도는 마우스·트랙패드마다 편차가 큽니다. 환경 변수로 조절할 수 있습니다.
