@@ -6,3 +6,5 @@ obj/
 dist/
 *.log
 *.user
+.claude/
+.serena/

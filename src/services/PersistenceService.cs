@@ -94,6 +94,13 @@ namespace Keymon
                 engine.FatigueScore = data.FatigueScore;
                 engine.ContinuousWorkMinutes = data.ContinuousWorkMinutes;
 
+                // 앱이 꺼져 있던 동안(밤새, 며칠 등)에도 피로도가 자연 감소하도록,
+                // 마지막 저장 시각과 지금 사이의 실제 경과 시간만큼 회복을 적용합니다.
+                if (data.LastSavedAt.HasValue)
+                {
+                    engine.ApplyOfflineRecovery(DateTime.Now - data.LastSavedAt.Value);
+                }
+
                 engine.FocusScore = data.FocusScore;
                 engine.FocusState = data.FocusState;
                 if (!string.IsNullOrEmpty(data.StateReason)) engine.StateReason = data.StateReason;
@@ -150,6 +157,7 @@ namespace Keymon
                     PersonalVarMj = engine.PersonalVarMj,
                     FatigueScore = engine.FatigueScore,
                     ContinuousWorkMinutes = engine.ContinuousWorkMinutes,
+                    LastSavedAt = DateTime.Now,
 
                     FocusScore = engine.FocusScore,
                     FocusState = engine.FocusState,
@@ -191,6 +199,7 @@ namespace Keymon
             public double PersonalVarMj { get; set; }
             public double FatigueScore { get; set; }
             public int ContinuousWorkMinutes { get; set; }
+            public DateTime? LastSavedAt { get; set; }
 
             public int FocusScore { get; set; }
             public int FocusState { get; set; }

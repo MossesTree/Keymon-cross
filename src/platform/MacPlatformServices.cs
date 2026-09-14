@@ -37,7 +37,12 @@ namespace Keymon.Platform
             {
                 string? raw = Environment.GetEnvironmentVariable("KEYMON_SCROLL_THRESHOLD");
                 if (int.TryParse(raw, out int parsed) && parsed > 0) return parsed;
-                return 10;
+                // ponytail: 트랙패드는 한 번의 스크롤 제스처만으로도 미세한 델타 이벤트를
+                // 수십~수백 번 쏟아내므로 10은 너무 예민해 60초 내 스크롤이 수백~수천 회로
+                // 잡히고, 이 값이 그대로 mpm에 더해져 AnalysisEngine의 폭주 입력 감지
+                // (mpm > 1000)를 상시 오탐시켰습니다. 300은 실측 없는 보정값이라, 기기별로
+                // 더 튀면 KEYMON_SCROLL_THRESHOLD 환경 변수로 올리면 됩니다.
+                return 300;
             }
         }
 

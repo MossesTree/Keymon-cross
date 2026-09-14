@@ -126,6 +126,7 @@ namespace Keymon
             {
                 TimeSpan sleepDuration = DateTime.Now - _inactiveStartTime;
                 _collector.OffsetTime(sleepDuration);
+                _engine.ApplyOfflineRecovery(sleepDuration);
                 _inactiveStartTime = default;
             }
 
@@ -147,7 +148,9 @@ namespace Keymon
                 if (gap > SleepGapThreshold)
                 {
                     // 실제로 흘렀어야 할 1초를 빼고, '잠들어 있던 시간'만큼만 밀어 줍니다.
-                    _collector.OffsetTime(gap - TimeSpan.FromSeconds(1));
+                    TimeSpan sleepDuration = gap - TimeSpan.FromSeconds(1);
+                    _collector.OffsetTime(sleepDuration);
+                    _engine.ApplyOfflineRecovery(sleepDuration);
                     Log.Info($"절전 복귀 감지: {gap.TotalSeconds:F0}초 공백을 보정했습니다.");
                 }
             }

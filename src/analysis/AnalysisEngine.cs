@@ -118,6 +118,10 @@ namespace Keymon
                 FocusState = 1;       // 비정상 상태(산만/에러)로 간주
                 _deepFocusStreak = 0; // 몰입 관성 스택 강제 초기화
                 StateReason = "⚠️ 비정상적인 폭주 입력(매크로/키 눌림 등)이 감지되어 분석을 차단합니다.";
+                // 이 조건이 여러 분 연속으로 계속 트리거되면(예: 스크롤 폭주) UpdateFatigue가 아예
+                // 호출되지 않아 FatigueScore가 그 시점 값(최악의 경우 100%)에 영원히 고정되던 버그.
+                // 정상 분석은 차단하되, 회복 로직만은 계속 돌려 피로도가 굳지 않게 합니다.
+                RecoverFatigue();
                 return; // 가장 중요: 아래의 복잡한 로직을 아예 실행하지 않고 여기서 즉시 함수 종료(Early Return)
             }
 
@@ -250,12 +254,7 @@ namespace Keymon
 
             if (_isRecovering)
             {
-                // 짧은 휴식으로도 뇌가 빠르게 회복되는 현실적 메커니즘
-                double recoveryAmount = (2.0 + (FatigueScore * 0.1)) * FatigueTimeScale;
-                FatigueScore = Math.Max(0, FatigueScore - recoveryAmount);
-
-                // 휴식 시 연속 작업 시간 대폭 차감
-                ContinuousWorkMinutes = Math.Max(0, ContinuousWorkMinutes - (int)(5 * FatigueTimeScale));
+                RecoverFatigue();
             }
             else // 작업 중 (가중 누적)
             {
@@ -289,6 +288,39 @@ namespace Keymon
                 // 최종 누적량에 테스트용 배속 적용
                 FatigueScore = Math.Min(100, FatigueScore + (totalAccumulation * FatigueTimeScale));
             }
+
+            if (FatigueScore >= 71) FatigueState = 3;
+            else if (FatigueScore >= 31) FatigueState = 2;
+            else FatigueState = 1;
+        }
+
+        // 짧은 휴식으로도 뇌가 빠르게 회복되는 현실적 메커니즘.
+        // 정상 유휴 상태뿐 아니라, 폭주 입력 감지로 분석이 차단된 동안에도 호출되어
+        // 피로도가 그 시점 값에 영원히 고정되지 않도록 합니다.
+        private void RecoverFatigue()
+        {
+            double recoveryAmount = (2.0 + (FatigueScore * 0.1)) * FatigueTimeScale;
+            FatigueScore = Math.Max(0, FatigueScore - recoveryAmount);
+
+            // 휴식 시 연속 작업 시간 대폭 차감
+            ContinuousWorkMinutes = Math.Max(0, ContinuousWorkMinutes - (int)(5 * FatigueTimeScale));
+
+            if (FatigueScore >= 71) FatigueState = 3;
+            else if (FatigueScore >= 31) FatigueState = 2;
+            else FatigueState = 1;
+        }
+
+        // 앱이 꺼져 있던(오프라인) 동안 흐른 실제 시간만큼 피로도를 회복시킵니다.
+        // RecoverFatigue()가 온라인 중 1분마다 적용하는 "F -> 0.9*F - 2" 감쇠를
+        // n분(=elapsed) 연속 적용한 것과 같은 결과를, 등비수열 닫힌 형태로 한 번에 계산합니다.
+        // (초 단위 elapsed까지 반영하도록 분 단위 소수를 그대로 지수로 사용합니다.)
+        public void ApplyOfflineRecovery(TimeSpan elapsed)
+        {
+            if (elapsed <= TimeSpan.Zero) return;
+
+            double minutes = elapsed.TotalMinutes;
+            FatigueScore = Math.Max(0, Math.Pow(0.9, minutes) * (FatigueScore + 20) - 20);
+            ContinuousWorkMinutes = Math.Max(0, ContinuousWorkMinutes - (int)(5 * minutes));
 
             if (FatigueScore >= 71) FatigueState = 3;
             else if (FatigueScore >= 31) FatigueState = 2;
